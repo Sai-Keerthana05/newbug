@@ -168,3 +168,4 @@ export const connectGoogleDev = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Server error connecting Gmail', error: error.message });
   }
 };
+
