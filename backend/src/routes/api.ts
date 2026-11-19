@@ -21,7 +21,13 @@ import {
   upgradeToPrime
 } from '../controllers/subscriptionController';
 import { generateVideo } from '../controllers/videoController';
-import { sendReport } from '../controllers/emailController';
+import { sendReport, sendGmailReport } from '../controllers/emailController';
+import {
+  getGoogleAuthUrl,
+  handleGoogleCallback,
+  disconnectGoogle,
+  connectGoogleDev
+} from '../controllers/googleAuthController';
 import {
   getUsers,
   deleteUser,
@@ -40,6 +46,14 @@ router.post('/auth/forgot-password', forgotPassword);
 router.post('/auth/reset-password', resetPassword);
 router.get('/auth/profile', auth, getProfile);
 router.put('/auth/profile', auth, updateProfile);
+
+// ==========================================
+// Google OAuth & Gmail Integration routes
+// ==========================================
+router.get('/auth/google/url', auth, getGoogleAuthUrl);
+router.get('/auth/google/callback', handleGoogleCallback);
+router.post('/auth/google/disconnect', auth, disconnectGoogle);
+router.post('/auth/google/connect-dev', auth, connectGoogleDev);
 
 // ==========================================
 // Code Analysis routes
@@ -64,6 +78,7 @@ router.post('/video/generate', auth, requirePrime, generateVideo);
 // Email routes (All Authenticated Users)
 // ==========================================
 router.post('/email/send', auth, sendReport);
+router.post('/email/send-gmail', auth, sendGmailReport);
 
 // ==========================================
 // Admin routes (Admin only)

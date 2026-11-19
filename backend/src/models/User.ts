@@ -8,6 +8,11 @@ export interface IUser extends Document {
   analysesUsed: number;
   lastAnalysisResetDate: Date;
   role: 'User' | 'Admin';
+  gmailConnected: boolean;
+  gmailEmail?: string;
+  gmailAccessToken?: string;
+  gmailRefreshToken?: string;
+  gmailTokenExpiry?: Date;
   createdAt: Date;
 }
 
@@ -19,6 +24,11 @@ const UserSchema: Schema = new Schema({
   analysesUsed: { type: Number, default: 0 },
   lastAnalysisResetDate: { type: Date, default: Date.now },
   role: { type: String, enum: ['User', 'Admin'], default: 'User' },
+  gmailConnected: { type: Boolean, default: false },
+  gmailEmail: { type: String, default: '' },
+  gmailAccessToken: { type: String, default: '' },
+  gmailRefreshToken: { type: String, default: '' },
+  gmailTokenExpiry: { type: Date },
   createdAt: { type: Date, default: Date.now }
 });
 

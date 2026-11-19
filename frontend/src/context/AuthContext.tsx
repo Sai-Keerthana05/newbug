@@ -8,6 +8,8 @@ interface User {
   subscription: 'Free' | 'Prime';
   analysesUsed: number;
   role: 'User' | 'Admin';
+  gmailConnected?: boolean;
+  gmailEmail?: string;
   createdAt?: string;
   totalAnalyses?: number;
 }
@@ -21,6 +23,8 @@ interface AuthContextType {
   updateProfile: (name: string, email: string, password?: string) => Promise<void>;
   upgradeSubscription: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  disconnectGmail: () => Promise<void>;
+  connectGmailDev: (email?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -78,6 +82,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser((prev) => (prev ? { ...prev, ...response.data.user } : null));
   };
 
+  const disconnectGmail = async () => {
+    const response = await api.post('/auth/google/disconnect');
+    setUser((prev) => (prev ? { ...prev, ...response.data.user } : null));
+  };
+
+  const connectGmailDev = async (email?: string) => {
+    const response = await api.post('/auth/google/connect-dev', { email });
+    setUser((prev) => (prev ? { ...prev, ...response.data.user } : null));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -88,7 +102,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateProfile,
         upgradeSubscription,
-        refreshUser
+        refreshUser,
+        disconnectGmail,
+        connectGmailDev
       }}
     >
       {children}

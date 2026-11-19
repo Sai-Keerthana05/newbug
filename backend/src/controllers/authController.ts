@@ -57,7 +57,9 @@ export const register = async (req: Request, res: Response) => {
         email: savedUser.email,
         subscription: savedUser.subscription,
         analysesUsed: savedUser.analysesUsed,
-        role: savedUser.role
+        role: savedUser.role,
+        gmailConnected: Boolean(savedUser.gmailConnected),
+        gmailEmail: savedUser.gmailEmail || ''
       }
     });
   } catch (error) {
@@ -93,7 +95,9 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         subscription: user.subscription,
         analysesUsed: user.analysesUsed,
-        role: user.role
+        role: user.role,
+        gmailConnected: Boolean(user.gmailConnected),
+        gmailEmail: user.gmailEmail || ''
       }
     });
   } catch (error) {
@@ -175,6 +179,8 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         analysesUsed: user.analysesUsed,
         role: user.role,
         createdAt: user.createdAt,
+        gmailConnected: Boolean(user.gmailConnected),
+        gmailEmail: user.gmailEmail || '',
         totalAnalyses
       }
     });
@@ -209,7 +215,9 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         email: updatedUser.email,
         subscription: updatedUser.subscription,
         analysesUsed: updatedUser.analysesUsed,
-        role: updatedUser.role
+        role: updatedUser.role,
+        gmailConnected: Boolean(updatedUser.gmailConnected),
+        gmailEmail: updatedUser.gmailEmail || ''
       }
     });
   } catch (error) {

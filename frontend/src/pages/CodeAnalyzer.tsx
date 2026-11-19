@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import SidebarLayout from '../components/SidebarLayout';
@@ -22,7 +23,8 @@ import {
   FileCode,
   CheckCircle2,
   XCircle,
-  X
+  X,
+  Link2
 } from 'lucide-react';
 
 const SUPPORTED_LANGUAGES = [
@@ -164,6 +166,7 @@ const CodeAnalyzer: React.FC = () => {
 
   // Email modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailProvider, setEmailProvider] = useState<'gmail' | 'smtp'>('gmail');
   const [recipientEmail, setRecipientEmail] = useState(user?.email || '');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState<{ success: boolean; msg: string } | null>(null);
@@ -248,6 +251,12 @@ const CodeAnalyzer: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const openEmailModal = (provider: 'gmail' | 'smtp') => {
+    setEmailProvider(provider);
+    setEmailStatus(null);
+    setEmailModalOpen(true);
+  };
+
   const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!result?._id || !recipientEmail) return;
@@ -256,15 +265,17 @@ const CodeAnalyzer: React.FC = () => {
     setEmailStatus(null);
 
     try {
-      const response = await api.post('/email/send', {
+      const endpoint = emailProvider === 'gmail' ? '/email/send-gmail' : '/email/send';
+      const response = await api.post(endpoint, {
         analysisId: result._id,
         toEmail: recipientEmail
       });
+
       setEmailStatus({ success: true, msg: response.data.message || 'Report sent successfully!' });
       setTimeout(() => {
         setEmailModalOpen(false);
         setEmailStatus(null);
-      }, 2200);
+      }, 2400);
     } catch (err: any) {
       setEmailStatus({
         success: false,
@@ -506,45 +517,58 @@ const CodeAnalyzer: React.FC = () => {
                   </div>
                 )}
 
-                {/* Action Buttons Toolbar */}
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
-                  <button
-                    onClick={() => handleCopyCode(result.correctedCode)}
-                    className="flex-1 py-2 px-3 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl border border-slate-700/60 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copied ? 'Copied!' : 'Copy Code'}</span>
-                  </button>
+                {/* Action Buttons Toolbar with explicit Send via Gmail & Send via Email */}
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => handleCopyCode(result.correctedCode)}
+                      className="py-2 px-2.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl border border-slate-700/60 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copied ? 'Copied' : 'Copy'}</span>
+                    </button>
 
-                  <button
-                    onClick={handleDownloadCode}
-                    className="flex-1 py-2 px-3 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl border border-slate-700/60 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download</span>
-                  </button>
+                    <button
+                      onClick={handleDownloadCode}
+                      className="py-2 px-2.5 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl border border-slate-700/60 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download</span>
+                    </button>
 
-                  <button
-                    onClick={() => setIsDiffMode(!isDiffMode)}
-                    className={`py-2 px-3 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
-                      isDiffMode
-                        ? 'bg-orange-500 text-white border-orange-400'
-                        : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700/60'
-                    }`}
-                    title="Toggle side-by-side diff comparison"
-                  >
-                    <GitCompare className="w-3.5 h-3.5" />
-                    <span>{isDiffMode ? 'Close Diff' : 'Compare Diff'}</span>
-                  </button>
+                    <button
+                      onClick={() => setIsDiffMode(!isDiffMode)}
+                      className={`py-2 px-2.5 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
+                        isDiffMode
+                          ? 'bg-orange-500 text-white border-orange-400'
+                          : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700/60'
+                      }`}
+                      title="Toggle side-by-side diff comparison"
+                    >
+                      <GitCompare className="w-3.5 h-3.5" />
+                      <span>{isDiffMode ? 'Close Diff' : 'Diff'}</span>
+                    </button>
+                  </div>
 
-                  <button
-                    onClick={() => setEmailModalOpen(true)}
-                    className="py-2 px-3 bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl border border-slate-700/60 transition-all flex items-center justify-center gap-1.5"
-                    title="Send full report via email"
-                  >
-                    <Mail className="w-3.5 h-3.5 text-orange-400" />
-                    <span>Email</span>
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Send via Gmail Button */}
+                    <button
+                      onClick={() => openEmailModal('gmail')}
+                      className="py-2.5 px-3 bg-gradient-to-r from-red-600/90 to-orange-600/90 hover:from-red-600 hover:to-orange-600 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <span className="font-extrabold text-[13px] bg-white text-red-600 w-4 h-4 rounded-full flex items-center justify-center">G</span>
+                      <span>Send via Gmail</span>
+                    </button>
+
+                    {/* Send via Platform Mail (SMTP) Button */}
+                    <button
+                      onClick={() => openEmailModal('smtp')}
+                      className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700/60 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Send via Email</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Test Cases */}
@@ -686,14 +710,14 @@ const CodeAnalyzer: React.FC = () => {
 
       </div>
 
-      {/* Email Report Modal */}
+      {/* Email Report Modal with Gmail & SMTP provider switching */}
       {emailModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#121222] border border-slate-700/80 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Mail className="w-5 h-5 text-orange-400" />
-                <h3 className="text-sm font-bold text-white">Share Bug Report via Email</h3>
+                <h3 className="text-sm font-bold text-white">Share Bug Report</h3>
               </div>
               <button
                 onClick={() => setEmailModalOpen(false)}
@@ -702,6 +726,78 @@ const CodeAnalyzer: React.FC = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Provider Switch Tabs */}
+            <div className="grid grid-cols-2 p-1 bg-[#0b0b18] border border-slate-800 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailProvider('gmail');
+                  setEmailStatus(null);
+                }}
+                className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  emailProvider === 'gmail'
+                    ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="font-extrabold text-[12px] bg-white text-red-600 w-3.5 h-3.5 rounded-full flex items-center justify-center">G</span>
+                <span>Gmail (OAuth 2.0)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailProvider('smtp');
+                  setEmailStatus(null);
+                }}
+                className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  emailProvider === 'smtp'
+                    ? 'bg-slate-700 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>Platform Mail (SMTP)</span>
+              </button>
+            </div>
+
+            {/* Provider Info Banner */}
+            {emailProvider === 'gmail' ? (
+              user?.gmailConnected ? (
+                <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-xs text-emerald-300 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold">Sending via Connected Gmail</div>
+                    <div className="text-[11px] text-emerald-400/90">{user.gmailEmail}</div>
+                  </div>
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl text-xs text-amber-300 space-y-2">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                    <span>Gmail account not connected</span>
+                  </div>
+                  <p className="text-[11px] text-amber-200/80 leading-normal">
+                    Authorize your Google account to send bug reports directly from your Gmail address.
+                  </p>
+                  <Link
+                    to="/profile"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] rounded-lg transition-all"
+                  >
+                    <Link2 className="w-3 h-3" /> Connect in Profile Settings
+                  </Link>
+                </div>
+              )
+            ) : (
+              <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-xl text-xs text-blue-300 flex items-center justify-between">
+                <div>
+                  <div className="font-bold">Bug Replier Platform Mail</div>
+                  <div className="text-[11px] text-blue-400/90">Sent via configured SMTP relay</div>
+                </div>
+                <Mail className="w-4 h-4 text-blue-400" />
+              </div>
+            )}
 
             <form onSubmit={handleSendEmail} className="space-y-4">
               <div className="space-y-1.5">
@@ -726,7 +822,7 @@ const CodeAnalyzer: React.FC = () => {
                       : 'bg-red-950/50 border border-red-800 text-red-300'
                   }`}
                 >
-                  {emailStatus.success ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                  {emailStatus.success ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <XCircle className="w-4 h-4 flex-shrink-0" />}
                   <span>{emailStatus.msg}</span>
                 </div>
               )}
@@ -741,18 +837,22 @@ const CodeAnalyzer: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={sendingEmail}
-                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-xs font-bold text-white rounded-xl disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-orange-500/20"
+                  disabled={sendingEmail || (emailProvider === 'gmail' && !user?.gmailConnected)}
+                  className={`px-4 py-2 text-xs font-bold text-white rounded-xl disabled:opacity-50 flex items-center gap-1.5 shadow-md ${
+                    emailProvider === 'gmail'
+                      ? 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 shadow-red-500/20'
+                      : 'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-orange-500/20'
+                  }`}
                 >
                   {sendingEmail ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Sending Report...</span>
+                      <span>Dispatching Report...</span>
                     </>
                   ) : (
                     <>
                       <Mail className="w-3.5 h-3.5" />
-                      <span>Send Bug Report</span>
+                      <span>{emailProvider === 'gmail' ? 'Send via Gmail' : 'Send via Platform Mail'}</span>
                     </>
                   )}
                 </button>
