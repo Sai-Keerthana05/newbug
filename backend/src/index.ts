@@ -52,18 +52,21 @@ app.get('/health', (req, res) => {
 // API Routes mounting
 app.use('/api', apiRoutes);
 
-// Database Connection and Server Startup
+// Database Connection with Auto-Retry and Server Startup
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bug-replier';
 
-mongoose
-  .connect(MONGODB_URI)
-  .then(() => {
+const connectDB = async () => {
+  try {
+    await mongoose.connect(MONGODB_URI);
     console.log('Successfully connected to MongoDB.');
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Bug Replier backend running on 0.0.0.0:${PORT}`);
-    });
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error('Database connection error:', error);
-    process.exit(1);
-  });
+    console.log('Retrying MongoDB connection in 5 seconds...');
+    setTimeout(connectDB, 5000);
+  }
+};
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Bug Replier backend running on 0.0.0.0:${PORT}`);
+  connectDB();
+});
