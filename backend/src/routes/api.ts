@@ -18,7 +18,10 @@ import {
 } from '../controllers/analysisController';
 import {
   getSubscriptionStatus,
-  upgradeToPrime
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  cancelSubscription,
+  handleRazorpayWebhook
 } from '../controllers/subscriptionController';
 import { generateVideo } from '../controllers/videoController';
 import { sendReport, sendGmailReport } from '../controllers/emailController';
@@ -64,10 +67,13 @@ router.get('/history', auth, getHistory);
 router.delete('/history/:id', auth, deleteHistory);
 
 // ==========================================
-// Subscription routes
+// Subscription & Razorpay routes
 // ==========================================
 router.get('/subscription', auth, getSubscriptionStatus);
-router.post('/subscription/upgrade', auth, upgradeToPrime);
+router.post('/subscription/create-order', auth, createRazorpayOrder);
+router.post('/subscription/verify-payment', auth, verifyRazorpayPayment);
+router.post('/subscription/cancel', auth, cancelSubscription);
+router.post('/subscription/webhook', handleRazorpayWebhook);
 
 // ==========================================
 // Video Generation routes (Prime only)

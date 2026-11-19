@@ -12,7 +12,6 @@
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
     "axios": "^1.7.2",
-    "bug-replier-root": "file:..",
     "framer-motion": "^11.2.10",
     "lucide-react": "^0.395.0",
     "react": "^18.3.1",
