@@ -1,13 +1,18 @@
 import nodemailer from 'nodemailer';
 
-interface SendReportParams {
+export interface SendReportParams {
   toEmail: string;
   originalCode: string;
   correctedCode: string;
   language: string;
+  bugTitle?: string;
+  errorType?: string;
   errorSummary: string;
   rootCause: string;
   explanation: string;
+  changesMade?: string[];
+  verificationStatus?: string;
+  preventionTips?: string[];
   videoUrl?: string;
 }
 
@@ -17,98 +22,117 @@ export const sendReportEmail = async (params: SendReportParams): Promise<boolean
     originalCode,
     correctedCode,
     language,
+    bugTitle,
+    errorType,
     errorSummary,
     rootCause,
     explanation,
+    changesMade,
+    verificationStatus,
+    preventionTips,
     videoUrl
   } = params;
 
   // Read config
   const host = process.env.SMTP_HOST || 'smtp.mailtrap.io';
-  const port = parseInt(process.env.SMTP_PORT || '2525', 10);
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const fromEmail = process.env.FROM_EMAIL || 'noreply@bugreplier.com';
 
-  console.log(`Attempting to send analysis email to: ${toEmail}`);
+  console.log(`Sending Bug Replier analysis report to: ${toEmail}`);
 
   let transporter;
 
-  if (user && pass) {
-    // Real SMTP configuration
+  if (user && pass && user !== 'your_email@gmail.com') {
     transporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465, // true for 465, false for other ports
+      secure: port === 465,
       auth: { user, pass }
     });
   } else {
-    // Development/Fallback: Log report details and return true
-    console.log('--- DEV EMAIL SIMULATION ---');
-    console.log(`To: ${toEmail}`);
-    console.log(`Subject: Bug Replier Code Analysis Report (${language})`);
-    console.log(`Summary: ${errorSummary}`);
-    console.log('----------------------------');
-    // We can also create a nodemailer test account on the fly if wanted, but standard console log fallback is very reliable.
+    // Development fallback simulation
+    console.log('--- DEV EMAIL REPORT GENERATED ---');
+    console.log(`Recipient: ${toEmail}`);
+    console.log(`Bug Title: ${bugTitle || 'Code Bug Analysis'}`);
+    console.log(`Language: ${language}`);
+    console.log(`Status: ${verificationStatus || 'Verified'}`);
+    console.log('-----------------------------------');
     return true;
   }
+
+  const titleText = bugTitle || `${language.toUpperCase()} Bug Resolution Report`;
+  const changesHtml = changesMade && changesMade.length > 0
+    ? changesMade.map(c => `<li style="margin-bottom: 6px;">${escapeHtml(c)}</li>`).join('')
+    : '<li>Code logic and syntax corrected for stability.</li>';
+
+  const tipsHtml = preventionTips && preventionTips.length > 0
+    ? preventionTips.map(t => `<li style="margin-bottom: 6px;">${escapeHtml(t)}</li>`).join('')
+    : '<li>Run automated tests and syntax linters before committing.</li>';
 
   const htmlContent = `
     <!DOCTYPE html>
     <html>
       <head>
         <meta charset="utf-8">
-        <title>Bug Replier Report</title>
+        <title>${escapeHtml(titleText)}</title>
         <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 20px; }
-          .container { max-width: 650px; background: #ffffff; margin: 0 auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; }
-          .header { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: #fff; padding: 30px; text-align: center; }
-          .header h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px; }
-          .header p { margin: 5px 0 0 0; opacity: 0.9; }
-          .content { padding: 30px; }
-          .section-title { font-size: 16px; font-weight: 600; color: #4b5563; margin-top: 20px; border-bottom: 2px solid #f3f4f6; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
-          .text-block { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px 15px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 14px; line-height: 1.6; }
-          .root-cause { border-left-color: #f59e0b; }
-          .code-block { background: #1e1e2e; color: #cdd6f4; font-family: 'Courier New', Courier, monospace; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 13px; margin: 10px 0; line-height: 1.5; white-space: pre-wrap; }
-          .btn-container { text-align: center; margin-top: 35px; }
-          .btn { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white !important; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
-          .footer { text-align: center; padding: 20px; font-size: 12px; color: #9ca3af; background-color: #f9fafb; border-top: 1px solid #f3f4f6; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #F7F5F2; color: #292929; margin: 0; padding: 24px; }
+          .container { max-width: 680px; background: #FFFFFF; margin: 0 auto; border-radius: 16px; border: 1px solid #E5E0D8; box-shadow: 0 10px 25px rgba(0,0,0,0.04); overflow: hidden; }
+          .header { background: #242424; color: #FFFFFF; padding: 32px 28px; text-align: left; border-bottom: 3px solid #F28C45; }
+          .header-badge { display: inline-block; background: #F28C45; color: #FFFFFF; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 9999px; margin-bottom: 12px; }
+          .header h1 { margin: 0; font-size: 22px; font-weight: 700; color: #F5F5F5; line-height: 1.3; }
+          .header p { margin: 6px 0 0 0; color: #A5A5A5; font-size: 13px; }
+          .content { padding: 28px; }
+          .section-title { font-size: 13px; font-weight: 700; color: #77736F; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 24px; margin-bottom: 8px; }
+          .text-block { background: #F9F8F6; border-left: 4px solid #F28C45; padding: 14px 16px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.6; color: #292929; }
+          .text-block.cause { border-left-color: #D96D35; }
+          .code-block { background: #1E1E1E; color: #E0E0E0; font-family: 'Consolas', 'Courier New', monospace; padding: 16px; border-radius: 10px; overflow-x: auto; font-size: 13px; line-height: 1.5; white-space: pre-wrap; margin-top: 8px; border: 1px solid #333333; }
+          .status-tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #E6F4EA; color: #137333; }
+          .list-block { background: #F9F8F6; padding: 16px 20px; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #333; margin: 8px 0; }
+          .list-block ul { margin: 0; padding-left: 20px; }
+          .footer { text-align: center; padding: 24px; font-size: 12px; color: #8C867F; background-color: #F1EEE9; border-top: 1px solid #E5E0D8; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>Bug Replier Report</h1>
-            <p>AI-Powered Code Analysis & Correction (${language})</p>
+            <span class="header-badge">${escapeHtml(language.toUpperCase())}</span>
+            <h1>${escapeHtml(titleText)}</h1>
+            <p>Bug Replier AI Debugging and Code Resolution Report</p>
           </div>
           <div class="content">
-            <div class="section-title">Error Summary</div>
-            <div class="text-block">${errorSummary}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div><strong>Error Type:</strong> ${escapeHtml(errorType || 'Bug Resolution')}</div>
+              <span class="status-tag">${escapeHtml(verificationStatus || 'AI-Generated')}</span>
+            </div>
+
+            <div class="section-title">Identified Error</div>
+            <div class="text-block">${escapeHtml(errorSummary)}</div>
 
             <div class="section-title">Root Cause</div>
-            <div class="text-block root-cause">${rootCause}</div>
+            <div class="text-block cause">${escapeHtml(rootCause)}</div>
 
-            <div class="section-title">Corrected Code</div>
+            <div class="section-title">Complete Corrected Code</div>
             <div class="code-block">${escapeHtml(correctedCode)}</div>
 
-            <div class="section-title">Detailed Explanation</div>
-            <div class="text-block" style="white-space: pre-wrap;">${explanation}</div>
+            <div class="section-title">Changes Made</div>
+            <div class="list-block">
+              <ul>${changesHtml}</ul>
+            </div>
 
-            ${
-              videoUrl
-                ? `
-              <div class="section-title">Video Explanation</div>
-              <p>Your Prime video explanation is ready to view.</p>
-              <div class="btn-container">
-                <a href="${videoUrl}" target="_blank" class="btn">Watch Video Explanation</a>
-              </div>
-            `
-                : ''
-            }
+            <div class="section-title">Prevention Tips</div>
+            <div class="list-block">
+              <ul>${tipsHtml}</ul>
+            </div>
+
+            <div class="section-title">Original Submitted Code</div>
+            <div class="code-block" style="opacity: 0.85;">${escapeHtml(originalCode)}</div>
           </div>
           <div class="footer">
-            <p>Sent via Bug Replier. Empowering developers with AI.</p>
-            <p>&copy; 2026 Bug Replier. All rights reserved.</p>
+            <p>Generated by <strong>Bug Replier</strong> &bull; Empowering developers with intelligent debugging.</p>
+            <p>&copy; 2026 Bug Replier Platform. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -117,9 +141,9 @@ export const sendReportEmail = async (params: SendReportParams): Promise<boolean
 
   try {
     await transporter.sendMail({
-      from: `"Bug Replier Support" <${fromEmail}>`,
+      from: `"Bug Replier" <${fromEmail}>`,
       to: toEmail,
-      subject: `Bug Replier: Code Analysis Report (${language})`,
+      subject: `Bug Replier: ${titleText} (${language.toUpperCase()})`,
       html: htmlContent
     });
     return true;

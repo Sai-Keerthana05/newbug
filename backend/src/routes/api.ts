@@ -12,6 +12,7 @@ import {
 } from '../controllers/authController';
 import {
   analyzeCode,
+  getAnalysisById,
   getHistory,
   deleteHistory
 } from '../controllers/analysisController';
@@ -44,6 +45,7 @@ router.put('/auth/profile', auth, updateProfile);
 // Code Analysis routes
 // ==========================================
 router.post('/analyze', auth, checkSubscriptionLimit, analyzeCode);
+router.get('/analysis/:id', auth, getAnalysisById);
 router.get('/history', auth, getHistory);
 router.delete('/history/:id', auth, deleteHistory);
 
@@ -59,9 +61,9 @@ router.post('/subscription/upgrade', auth, upgradeToPrime);
 router.post('/video/generate', auth, requirePrime, generateVideo);
 
 // ==========================================
-// Email routes (Prime only)
+// Email routes (All Authenticated Users)
 // ==========================================
-router.post('/email/send', auth, requirePrime, sendReport);
+router.post('/email/send', auth, sendReport);
 
 // ==========================================
 // Admin routes (Admin only)

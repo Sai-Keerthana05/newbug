@@ -5,7 +5,7 @@ import User from '../models/User';
 import { analyzeCodeWithAI } from '../services/aiService';
 
 export const analyzeCode = async (req: AuthRequest, res: Response) => {
-  const { originalCode, language } = req.body;
+  const { originalCode, language, bugDescription, errorMessage, expectedBehavior } = req.body;
 
   if (!req.user) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -13,26 +13,42 @@ export const analyzeCode = async (req: AuthRequest, res: Response) => {
 
   try {
     if (!originalCode || !language) {
-      return res.status(400).json({ message: 'Please provide code and language' });
+      return res.status(400).json({ message: 'Please provide code and programming language' });
     }
 
-    // Double check user
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Call AI analysis service
-    const aiResult = await analyzeCodeWithAI(originalCode, language);
+    // Call enhanced AI debugging engine with all parameters
+    const aiResult = await analyzeCodeWithAI({
+      code: originalCode,
+      language,
+      errorMessage,
+      bugDescription,
+      expectedBehavior
+    });
 
-    // Create Analysis record
+    // Create Analysis record with full structured fields
     const newAnalysis = new Analysis({
       userId: user._id,
       originalCode,
-      language,
+      language: language.toLowerCase().trim(),
+      bugDescription: bugDescription || '',
+      errorMessage: errorMessage || '',
+      bugTitle: aiResult.bug_title,
+      errorType: aiResult.error_type,
+      errorExplanation: aiResult.error_explanation,
+      rootCause: aiResult.root_cause,
+      problematicCode: aiResult.problematic_code,
+      correctedCode: aiResult.corrected_code,
+      correctionExplanation: aiResult.correction_explanation,
+      changesMade: aiResult.changes_made,
+      verificationStatus: aiResult.verification_status,
+      testCases: aiResult.test_cases,
+      preventionTips: aiResult.prevention_tips,
       errorSummary: aiResult.errorSummary,
-      rootCause: aiResult.rootCause,
-      correctedCode: aiResult.correctedCode,
       explanation: aiResult.explanation
     });
 
@@ -48,6 +64,24 @@ export const analyzeCode = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('Error during code analysis controller execution:', error);
     res.status(500).json({ message: 'Server error during code analysis', error: error.message });
+  }
+};
+
+export const getAnalysisById = async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const analysis = await Analysis.findOne({ _id: id, userId: req.user.id });
+    if (!analysis) {
+      return res.status(404).json({ message: 'Analysis not found' });
+    }
+    res.json(analysis);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error retrieving analysis', error: error.message });
   }
 };
 
@@ -88,12 +122,12 @@ export const deleteHistory = async (req: AuthRequest, res: Response) => {
   try {
     const analysis = await Analysis.findOne({ _id: id, userId: req.user.id });
     if (!analysis) {
-      return res.status(404).json({ message: 'Analysis record not found' });
+      return res.status(404).json({ message: 'Analysis report not found' });
     }
 
     await Analysis.deleteOne({ _id: id });
-    res.json({ message: 'Analysis record deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error deleting history' });
+    res.json({ message: 'Analysis report deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error deleting report', error: error.message });
   }
 };
