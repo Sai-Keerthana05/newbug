@@ -1,3 +1,4 @@
+
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -11,34 +12,58 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
-// Dynamic CORS to support localhost, configured FRONTEND_URL, and Vercel domains
+// CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'http://localhost:5173',
   'http://127.0.0.1:5173'
 ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
-      return callback(null, true);
-    }
-    return callback(null, true);
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
 
+      if (
+        allowedOrigins.includes(origin) ||
+        /\.vercel\.app$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      // Allow requests from the same deployment and other origins.
+      // Restrict this list later if you deploy the frontend separately.
+      return callback(null, true);
+    },
+    credentials: true
+  })
+);
+
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve generated videos statically
-app.use('/videos', express.static(path.join(__dirname, '..', 'public', 'videos')));
+// Serve generated videos
+app.use(
+  '/videos',
+  express.static(
+    path.join(__dirname, '..', 'public', 'videos')
+  )
+);
 
-// Base health check route
+// Health check
 app.get('/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
-  const dbStatus = dbState === 1 ? 'Connected' : dbState === 2 ? 'Connecting' : 'Disconnected';
+
+  const dbStatus =
+    dbState === 1
+      ? 'Connected'
+      : dbState === 2
+      ? 'Connecting'
+      : 'Disconnected';
+
   res.json({
     status: 'OK',
     service: 'Bug Replier Backend API',
@@ -49,28 +74,61 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes mounting
+// Backend API routes
 app.use('/api', apiRoutes);
 
-// Database Connection with Auto-Retry and Server Startup
-// Database Connection with Auto-Retry and Server Startup
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://saikeerthana1112_db_user:Oyzj4OXMD1yX50l5@cluster1.2heizmj.mongodb.net/bug-replier?retryWrites=true&w=majority';
+// Serve React frontend
+const frontendPath = path.resolve(
+  __dirname,
+  '../../frontend/dist'
+);
 
+app.use(express.static(frontendPath));
+
+// React Router fallback
+app.get('*', (req, res, next) => {
+  if (
+    req.path.startsWith('/api') ||
+    req.path.startsWith('/health') ||
+    req.path.startsWith('/videos')
+  ) {
+    return next();
+  }
+
+  res.sendFile(
+    path.join(frontendPath, 'index.html'),
+    (error) => {
+      if (error) {
+        next(error);
+      }
+    }
+  );
+});
+
+// MongoDB connection
+const MONGODB_URI =  process.env.MONGODB_URI || 'mongodb+srv://saikeerthana1112_db_user:Oyzj4OXMD1yX50l5@cluster1.2heizmj.mongodb.net/bug-replier?retryWrites=true&w=majority';
 if (!MONGODB_URI) {
   throw new Error('MONGODB_URI is not configured');
 }
-const connectDB = async () => {
+
+const connectDB = async (): Promise<void> => {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log('Successfully connected to MongoDB.');
   } catch (error) {
     console.error('Database connection error:', error);
+
     console.log('Retrying MongoDB connection in 5 seconds...');
-    setTimeout(connectDB, 5000);
+
+    setTimeout(() => {
+      void connectDB();
+    }, 5000);
   }
 };
 
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Bug Replier backend running on 0.0.0.0:${PORT}`);
-  connectDB();
+  console.log(`Bug Replier running on port ${PORT}`);
+
+  void connectDB();
 });
