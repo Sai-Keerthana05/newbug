@@ -56,6 +56,9 @@ app.use('/api', apiRoutes);
 // Database Connection with Auto-Retry and Server Startup
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://saikeerthana1112_db_user:Oyzj4OXMD1yX50l5@cluster1.2heizmj.mongodb.net/bug-replier?retryWrites=true&w=majority';
 
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI is not configured');
+}
 const connectDB = async () => {
   try {
     await mongoose.connect(MONGODB_URI);
